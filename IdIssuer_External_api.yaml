@@ -1,0 +1,1509 @@
+openapi: "3.0.1"
+info:
+  version: 1.0.0
+  title: Tobacco Track&Trace ID Issuer API
+  description: >- 
+    This API is offered by the ID Issuer to economic operators (EO). By means
+    of this API EOs may submit, review, or revoke orders for organizations (3rd party 
+    registration), facilities, machines, unit level UIs, or aggregation level UIs.
+servers:
+  - url: https://tobedefinedlater/v1
+paths:
+  /api:
+    get:
+      summary: Provides OpenAPI Specification on this API in YAML format
+      operationId: apiProperties
+      tags:
+        - api-information
+      responses:
+        200:
+          description: API definition specified in OpenAPI Specification   
+            notation (this file)
+          content:
+            text/plain:    
+              schema:
+                type: string
+                example: "openapi: 3.0.1\n\tinfo:\n\t\tversion: 1.0.1   
+                \n\t\ttitle: Tobacco Track&Trace ID Issuer API\n..."
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /order:
+    get:
+      summary: List all open orders created by the invoking EO
+      operationId: getAllOpenOrders
+      tags:
+        - orders       
+      responses:
+        200:
+          description: List of open orders. May be null, if no order is open.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenOrderList'
+        401:
+          description: missing authorization
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"        
+  /order/{orderId}:
+    get:
+      summary: Provides information on an ID order in an arbitrary   
+        processing state
+      operationId: GetOrderById
+      tags:
+        - orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Information on the order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderInfoObject'
+        401:
+          description: missing authorization
+        404:
+          description: order not found
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"        
+    delete:
+      summary: Delete an order
+      tags:
+        - orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: recallCode
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/RecallCode'
+        - name: recallReason1
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/RecallReasons' 
+        - name: recallReason2
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/RecallReasonOther'
+          description: Mandatory, if recallReason1=Other
+        - name: recallReason3
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/RecallReasonOther'            
+      responses:
+        200:
+          description: Order deleted. Id of the deleted order is returned   
+            in the message body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderId'
+        401:
+          description: Missing authorization
+        404:
+          description: Order not found
+        410:
+          description: The recall period for this order has been elapsed. The   
+            order can't be recalled any more.
+        503:
+          description: Service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /upui:
+    post:
+      summary: Submit a new order for unit packet level unique identifiers.  
+        Only one order per operation is allowed.
+      tags:
+        - unique identifiers 
+      requestBody:
+        description: The information specified in TPD Implementation act, Annex II for
+          UI orders have to be submitted in the request body.
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpUiOrderParameter'
+      responses:
+        202:
+          description: Order accepted, the order ID for this order is enclosed   
+            in the response body. The UIs will be created at a later point in time.   
+            Once the creation is done the requestor is notified, either by webhook,   
+            if supplied in the order, or by email (default)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UiOrderResponse'
+          links:
+            GetOrderById:
+              description: >
+                The returned OrderId can be used as parameter ´orderId´ in
+                ´GET /order/{orderId}´ operation
+              operationId: GetOrderById
+              parameters:
+                orderId: $response.body#/orderId
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"     
+  /aui:
+    post:
+      summary: Submit a new order for aggregated level unique identifiers.  
+        Only one order per operation is allowed.
+      tags:
+        - unique identifiers 
+      requestBody:
+        description: The information specified in TPD Implementation act, Annex II for
+          UI orders have to be submitted in the request body.
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuiOrderParameter'
+      responses:
+        202:
+          description: Order accepted, the order ID for this order is enclosed   
+            in the response body. The UIs will be created at a later point in time.   
+            Once the creation is done the requestor is notified, either by webhook,   
+            if supplied in the order, or by email (default)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UiOrderResponse'   
+          links:
+            GetOrderById:
+              description: >
+                The returned OrderId can be used as parameter ´orderId´ in
+                ´GET /order/{orderId}´ operation
+              operationId: GetOrderById
+              parameters:
+                orderId: $response.body#/orderId
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"                 
+  /operator:
+    post:
+      summary: Submit an order for a 3rd party economic operator registration.  
+        Multiple EOs may be registered within one order.
+      tags:
+        - economic operator IDs
+      requestBody:
+          description: A not empty array of ID orders. Each id order item must   
+            hold the information specified in TPD Implementation act, Annex II
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/3rdPartyEoIdOrderParameter'
+      responses:
+        200:
+          description: Order accepted. The created identifiers are enclosed   
+            in the body of the response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EoIdOrderResult'   
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /operator/{identifier}:
+    put:
+      summary: Submit an order to correct properties of an economic operator maintained  
+        in the registry. This operation can be applied to information related to the  
+        own company or a retail operator acting on behalf of.
+      tags:
+        - economic operator IDs
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/EoId'
+      requestBody:
+        description: The complete master record data acc. to TPD Implementation   
+          act, Annex II including the modifications
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EoIdCorrectionOrderParameter'
+      responses:
+        200:
+          description: Order accepted, entity modified. The ID of the modified entity   
+            is enclosed in the body of the response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EoId'
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"    
+    delete:
+      summary: Submit an order to deactivate an EO-ID. This operation can be applied   
+        to the registation of the own company or to a retail operator acting on behalf of.  
+        All assets will be deactivated, too, linked with the affected EO.
+      tags:
+        - economic operator IDs
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/EoId'
+          description: The ID of the EO to be deactivated            
+        - name: eoCode
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ConfirmationCode'
+          description: The EO's confirmation code to be deactivated
+        - name: reg3rd
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ChoiceSelector'
+          description: This paramter is set to true, if this order is made on behalf  
+            of a retail operator            
+        - name: eoId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/EoId'   
+          description: If parameter reg3rd is true, this parameter holds the EO-Id of  
+            the retail operator this order is made on behalf of
+      responses:
+        200:
+          description: Order accepted, entity deactivated. Also depending entities    
+            have been deactivated, e.g. all machines will be deactivated along with an 
+            deactivation order on the facility the machines are deployed in.
+            The identifiers of the deactivated entities are returned in the response body.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/EoId'
+                    - $ref: '#/components/schemas/Fid'
+                    - $ref: '#/components/schemas/Mid'
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"   
+  /facility:
+    post:
+      summary: Submit an order for a facility id. This operation serves both  
+        cases, registration of own assets and 3rd party registration.  
+        Multiple facilities can be processed by one order.
+      tags:
+        - facility IDs
+      requestBody:
+          description: A not empty array of ID orders. Each id order item must   
+            hold the information specified in TPD Implementation act, Annex II
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FacilityIdOrderParameter'
+      responses:
+        200:
+          description: Order accepted. The created identifiers are enclosed   
+            in the body of the response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FidOrderResult'   
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /facility/{identifier}:
+    put:
+      summary: Submit an order to correct properties of an facility-ID.   
+        This operation can be applied to information related to own facilities    
+        or facilities of a retail operator acting on behalf of.
+      tags:
+        - facility IDs
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Fid'
+          description: The ID of the facility its information shall be corrected            
+      requestBody:
+        description: The complete master record data acc. to TPD Implementation   
+          act, Annex II including the modifications
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityIdCorrectionOrderParameter'
+      responses:
+        200:
+          description: Order accepted, entity modified. The ID of the modified entity   
+            is enclosed in the body of the response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fid'   
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"    
+    delete:
+      summary: Submit an order to deactivate an facility-ID. This operation can be applied   
+        to a facility of the own company or to a retail operator's facility acting  
+        on behalf of. All machines will be deactivated, too, linked with the affected  
+        facility.
+      tags:
+        - facility IDs
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Fid'
+          description: The ID of the facility to be deactivated
+        - name: eoCode
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ConfirmationCode'
+          description: The EO's confirmation code the facility belongs to
+        - name: reg3rd
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ChoiceSelector'  
+          description: This paramter is set to true, if this order is made on behalf  
+            of a retail operator
+        - name: eoId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/EoId'
+          description: If parameter reg3rd is true, this parameter holds the EO-Id of  
+            the retail operator this order is made on behalf of            
+      responses:
+        200:
+          description: Order accepted, entity deactivated. Also depending entities    
+            have been deactivated, e.g. all machines will be deactivated along with an 
+            deactivation order on the facility the machines are deployed in.
+            The identifiers of the deactivated entities are returned in the response body.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/Fid'
+                    - $ref: '#/components/schemas/Mid'
+                example: ['51q<$000000000025000021', '51q>$000000000025000003' ]
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"                
+  /machine:
+    post:
+      summary: Submit an order for a machine id. Multiple machines can be  
+        processed by one order.
+      tags:
+        - machine IDs
+      requestBody:
+          description: A not empty array of ID orders. Each id order item must   
+            hold the information specified in TPD Implementation act, Annex II
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineIdOrderParameter'
+      responses:
+        200:
+          description: Order accepted. The created identifiers are enclosed   
+            in the body of the response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MidOrderResult'   
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /machine/{identifier}:
+    put:
+      summary: Submit an order to correct properties of a machine.
+      tags:
+        - machine IDs
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Mid'
+          description: The machine's ID to correct its information
+      requestBody:
+        description: The complete master record data acc. to TPD Implementation   
+          act, Annex II including the modifications
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MachineIdCorrectionOrderParameter'
+      responses:
+        200:
+          description: Order accepted, entity modified. The ID of the modified entity   
+            is enclosed in the body of the response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mid'   
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"    
+    delete:
+      summary: Submit an order to deactivate a machine-ID.
+      tags:
+        - machine IDs
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Mid'
+          description: The ID of the machine to be deactivated            
+        - name: eoCode
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ConfirmationCode'
+          description: The EO's confirmation code
+        - name: fid
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Fid'
+          description: The ID of the facility the machine to be deactivated is  
+            assigned to
+      responses:
+        200:
+          description: Order accepted, entity/entites deactivated.
+            The identifier of the deactivated entity/entities is/are returned in the response body.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Mid'
+                example: ['51q>$000000000025000002', '51q>$000000000025000003' ]
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"           
+        401:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer          
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"                
+components:
+  schemas:
+#
+# general types used in operations on code orders
+#
+    OrderPosition:
+      type: integer
+      example: 1
+    OrderId:
+      type: string
+      minLength: 11
+      maxLength: 11
+      description: An order ID
+      format: '^\d{11}$'
+      example: "18000093616"  
+    OrderStatus:
+      type: string
+      enum:
+        - stored
+        - in-processing
+        - ready-for-delivery
+        - delivered
+        - closed
+        - cancled
+      example:
+        in-processing
+    OrderSummary:
+      type: string
+      description: >- 
+        A summary on the order. Summary content and item order are 
+        unspecified and my be subject to changes in future releases.
+      example: "2018/09/13, 20.000 UIs, product x"      
+    OrderInfoObject:
+      type: object
+      properties:
+        orderId:
+          $ref: '#/components/schemas/OrderId' 
+        orderStatus:
+          $ref: '#/components/schemas/OrderStatus'
+        orderSummary:
+          $ref: '#/components/schemas/OrderSummary'
+      required:
+      - orderId
+      - orderStatus
+      - orderSummary
+    OpenOrderList:
+      type: array
+      items:
+        $ref: '#/components/schemas/OrderInfoObject'
+      nullable: true
+
+#
+# basic types used in operations on identifiers stored in the registry
+#
+    DescriptionType:
+      type: string
+      minLength: 1
+      maxLength: 50
+    EoId:
+      type: string
+      example: '51q+$000000000025'
+      minLength: 17
+      maxLength: 17
+    Fid:
+      type: string      
+      minLength: 23
+      maxLength: 30      
+      example: '51q<$000000000025000021'      
+    Mid:
+      type: string 
+      minLength: 23
+      maxLength: 23      
+      example: '51q>$000000000025000003'
+    ConfirmationCode:
+      description: Confirmation code acc. to TPD - Annex II
+      type: string
+      minLength: 6
+      maxLength: 6
+      format: '^[0-9a-kmnp-zA-KMNP-Z]{6}$'     
+      example: 'dZU51X'
+    ChoiceSelector:
+      type: boolean
+      description: false means "0-No", true means "1-Yes" acc. to TPD-Annex II
+    EoName:
+      type: string
+      minLength: 1
+      maxLength: 250
+      example: 'A company manufacturing everyting (ACME)'
+    Street:
+      type: string
+      minLength: 1
+      maxLength: 40    
+      example: 'Mainstreet'
+    HouseNumber:
+      type: string
+      minLength: 1
+      maxLength: 20
+      example: '1a'
+    ZipCode:
+      type: string
+      minLength: 1
+      maxLength: 10    
+      example: '1000'
+    City:
+      type: string
+      minLength: 1
+      maxLength: 40
+      example: 'The greatest city on earth'
+    Address:
+      properties:
+        street:
+          $ref: '#/components/schemas/Street'
+        houseNumber:
+          $ref: '#/components/schemas/HouseNumber'
+        zipCode:
+          $ref: '#/components/schemas/ZipCode'
+        city:
+          $ref: '#/components/schemas/City'
+      required:
+        - street
+        - houseNumber
+        - zipCode
+        - city
+    IsoCountry:
+      description: Country name coded with ISO-3166-1:2013
+      type: string
+      minLength: 2
+      maxLength: 2
+      example: 'DE'
+    Email:
+      description: acc. to RFC5322
+      type: string
+      minLength: 5
+      maxLength: 100
+      format: email
+      example: 'here@acme.eu'
+    Gln:
+      description: GS1 global location number
+      type: string
+      minLength: 13
+      maxLength: 13
+      format: '^\d{13}$'
+      example: '9012345000004'
+    VatId:
+      description: see https://en.wikipedia.org/wiki/VAT_identification_number
+      type: string
+      minLength: 8
+      maxLength: 14
+      example: 'DE999999999'
+    Tin:
+      description: acc. To https://ec.europa.eu/taxation_customs/tin/
+      type: string
+      minLength: 16
+      maxLength: 16
+      example: '99999999999'
+    Seed:
+      description: acc. To http://ec.europa.eu/taxation_customs/dds2/seed/help/seedhedn.jsp?Lang=en
+      type: string
+      minLength: 13
+      maxLength: 13
+      format: '^[A-Za-z]{2}[A-Za-z0-9]{11}$'
+      example: 'DEabcdef12345'
+    InvoicingMethod:
+      type: string
+      enum:
+        - Electronically
+        - Paper
+    FacilityType:
+      type: string
+      enum:
+        - ManufacturingSiteWithWarehouse
+        - StandaloneWarehouse
+        - RetailOutlet
+        - Other
+    FacilityTypeOther:
+      $ref: '#/components/schemas/DescriptionType'
+    MachineProducer:
+      $ref: '#/components/schemas/DescriptionType'
+    MachineModel:
+      $ref: '#/components/schemas/DescriptionType'
+    MachineSerialNumber:
+      $ref: '#/components/schemas/DescriptionType'
+    MachineCapacity:
+      type: integer
+      format: int32
+      example: 1130
+    TobaccoProductType:
+      type: string
+      enum:
+        - Cigarette
+        - Cigar
+        - Cigarillo
+        - RollYourOwnTobacco
+        - PipeTobacco
+        - WaterpipeTobacco
+        - OralTobacco
+        - NasalTobacco
+        - ChewingTobacco
+        - NovelTobaccoProduct
+        - Other
+    TobaccoProductTypeOther:
+      $ref: '#/components/schemas/DescriptionType'
+    CombinedNomenclatureCode:
+      type: string
+      minLength: 8
+      maxLength: 10       
+      format: '^\d{8,10}$'
+    ProductBrand:
+      $ref: '#/components/schemas/DescriptionType'    
+    Gtin:
+      type: string
+      minLength: 13
+      maxLength: 13
+      example: "0022140002355"
+    ProductAvgGrossWeight:
+      type: number
+      format: float
+    EuCegTobaccoProductId:
+      type: string
+      minLength: 14
+      maxLength: 14       
+      format: '^\d{5}-\d{2}-\d{5}$'
+      description: EU-CEG TP-ID „Übermittler-ID–Jahr–Produktnummer“ (NNNNN–NN–NNNNN)
+    EuCegTobaccoProductNumber:
+      type: string
+      minLength: 1
+      maxLength: 20       
+      format: '^\d{1,20}$'
+    Quantity:
+      type: integer
+      minimum: 1
+      maximum: 1000000
+      example: 50000
+    WebHook:
+      type: string
+      minLength: 1
+      maxLength: 250      
+      format: uri
+      example: 'https://notifications.acme.eu/upui/'
+    OrderProcessingPriority:
+      type: string
+      enum:
+        - TpdStandardProcessing
+        - ImmediateProcessingNoRecallPossible
+      default:
+        TpdStandardProcessing
+      description: Controls how the order shall be processed by the ID Issuer. If omitted,   TpdStandardProcessing is assumed.
+    RecallCode:
+      type: string
+      minLength: 6
+      maxLength: 6
+      example: "fR5K49"
+      description: This code is used to recall upUI or aUI orders.
+    RecallReasons:
+      type: string
+      enum:
+        - ErroneousInformation
+        - Other
+    RecallReasonOther:
+      $ref: '#/components/schemas/DescriptionType'
+#
+# Types used in identifier orders
+#
+#
+# 3rd party EO-ID order
+    3rdPartyEoIdOrderParameter:
+      type: array
+      items:
+        type: object
+        properties:
+          position:
+            $ref: '#/components/schemas/OrderPosition'
+          details:
+            $ref: '#/components/schemas/3rdPartyEoIdOrderDetails'
+        required:
+          - position
+          - details 
+      minItems: 1
+#
+    3rdPartyEoIdOrderDetails:
+      type: object
+      properties:
+        eoName1:
+          $ref: '#/components/schemas/EoName'
+        eoName2:
+          $ref: '#/components/schemas/EoName'   
+        eoAddress:
+          $ref: '#/components/schemas/Address'
+        eoCountryReg:
+          $ref: '#/components/schemas/IsoCountry'
+        eoEmail: # retail operator's email address
+          $ref: '#/components/schemas/Email'
+        vatR:
+          $ref: '#/components/schemas/ChoiceSelector'
+        vatN:
+          $ref: '#/components/schemas/VatId'
+        taxN:
+          $ref: '#/components/schemas/Tin'
+        eoExciseNumber1:
+          $ref: '#/components/schemas/ChoiceSelector'
+        eoExciseNumber2:
+          $ref: '#/components/schemas/Seed'
+        otherEoIdR:
+          $ref: '#/components/schemas/ChoiceSelector'
+        otherEoIdN:
+          type: array
+          items:
+            type: string
+        companyGln:
+          $ref: '#/components/schemas/Gln'
+      required:
+        - eoName1
+        - eoAddress
+        - eoCountryReg
+        - vatR
+        - eoExciseNumber1
+        - otherEoIdR
+      example:
+        eoName1: "The friendly corner shop"
+        eoAddress: {
+          street: "Mainstreet",
+          houseNumber: "1a",
+          zipCode: "1000",
+          city: "The greatest city on earth"
+        }
+        eoCountryReg: "DE"
+        eoEmail: "here@cornershop.eu"
+        vatR: true
+        vatN: "DE999999999"
+        eoExciseNumber1: false
+        otherEoIdR: false
+#
+    EoIdCorrectionOrderParameter:
+      type: object
+      properties:
+        eoId:
+          $ref: '#/components/schemas/EoId'      
+        eoCode:
+          $ref: '#/components/schemas/ConfirmationCode'
+        eoName1:
+          $ref: '#/components/schemas/EoName'
+        eoName2:
+          $ref: '#/components/schemas/EoName'   
+        eoAddress:
+          $ref: '#/components/schemas/Address'
+        eoCountryReg:
+          $ref: '#/components/schemas/IsoCountry'
+        eoEmail:
+          $ref: '#/components/schemas/Email'
+        vatR:
+          $ref: '#/components/schemas/ChoiceSelector'
+        vatN:
+          $ref: '#/components/schemas/VatId'
+        taxN:
+          $ref: '#/components/schemas/Tin'
+        eoExciseNumber1:
+          $ref: '#/components/schemas/ChoiceSelector'
+        eoExciseNumber2:
+          $ref: '#/components/schemas/Seed'
+        otherEoIdR:
+          $ref: '#/components/schemas/ChoiceSelector'
+        otherEoIdN:
+          type: array
+          items:
+            type: string
+        reg3rd:
+          $ref: '#/components/schemas/ChoiceSelector'
+        invoicingMethod:
+          $ref: '#/components/schemas/InvoicingMethod'
+        invoicingAddress:
+          oneOf:
+            - $ref: '#/components/schemas/Email'
+            - $ref: '#/components/schemas/Address'
+          example: 'invoicing@acme.eu'
+      required:
+        - eoCode
+        - eoName1
+        - eoAddress
+        - eoCountryReg
+        - vatR
+        - eoExciseNumber1
+        - otherEoIdR
+        - reg3rd
+      example:
+        eoCode: "dZU51X"
+        eoName1: "A company manufacturing everyting"
+        eoName2: "ACME"
+        eoAddress: {
+          street: "Mainstreet",
+          houseNumber: "1a",
+          zipCode: "1000",
+          city: "The greatest city on earth"
+        }
+        eoCountryReg: "DE"
+        eoEmail: "here@acme.eu"
+        vatR: true
+        vatN: "DE999999999"
+        eoExciseNumber1: true
+        eoExciseNumber2: "DEabcdef12345"
+        otherEoIdR: true
+        otherEoIdN: ["anAdditionalId"]
+        reg3rd: false,
+        invoicingMethod: "electronically"
+        invoicingAddress: "invoicing@acme.eu"      
+#
+# Facility-ID order
+    FacilityIdOrderParameter:
+      type: array
+      items:
+        type: object
+        properties:
+          position:
+            $ref: '#/components/schemas/OrderPosition'
+          details:
+            $ref: '#/components/schemas/FacilityIdOrderDetails' 
+        required:
+          - position
+          - details
+      minItems: 1 
+#
+    FacilityIdOrderDetails:
+      type: object
+      properties:
+        eoId:
+          $ref: '#/components/schemas/EoId'      
+        eoCode:
+          $ref: '#/components/schemas/ConfirmationCode'
+        fAddress:
+          $ref: '#/components/schemas/Address'
+        fCountry:
+          $ref: '#/components/schemas/IsoCountry'
+        fType:
+          $ref: '#/components/schemas/FacilityType'
+        fTypeOther:
+          $ref: '#/components/schemas/FacilityTypeOther'
+        fStatus:
+          $ref: '#/components/schemas/ChoiceSelector'
+        fExciseNumber1:
+          $ref: '#/components/schemas/ChoiceSelector'
+        fExciseNumber2:
+          $ref: '#/components/schemas/Seed'
+        otherFidR:
+          $ref: '#/components/schemas/ChoiceSelector'
+        otherFidN:
+          type: array
+          items:
+            type: string
+        reg3rd:
+          $ref: '#/components/schemas/ChoiceSelector'
+        gln:
+          $ref: '#/components/schemas/Gln'          
+      required:
+        - eoCode
+        - fAddress
+        - fCountry
+        - fType
+        - fStatus
+        - fExciseNumber1
+        - otherFidR
+        - reg3rd
+      example:
+        eoId: "51q+$000000000025"
+        eoCode: "dZU51X"
+        fAddress: {
+          street: "Mainstreet",
+          houseNumber: "1a",
+          zipCode: "1000",
+          city: "The greatest city on earth"
+        }
+        fCountry: "DE"
+        fType: "RetailOutlet"
+        fStatus: true
+        fExciseNumber1: true
+        fExciseNumber2: "DEabcdef12345"
+        otherFidR: true
+        otherFidN: ["someOtherId"]
+        reg3rd: true
+        gln: "9012345000004"      
+#      
+    FacilityIdCorrectionOrderParameter:
+      type: object
+      properties:
+        eoId:
+          $ref: '#/components/schemas/EoId'      
+        eoCode:
+          $ref: '#/components/schemas/ConfirmationCode'
+        fAddress:
+          $ref: '#/components/schemas/Address'
+        fCountry:
+          $ref: '#/components/schemas/IsoCountry'
+        fType:
+          $ref: '#/components/schemas/FacilityType'
+        fTypeOther:
+          $ref: '#/components/schemas/FacilityTypeOther'
+        fStatus:
+          $ref: '#/components/schemas/ChoiceSelector'
+        fExciseNumber1:
+          $ref: '#/components/schemas/ChoiceSelector'
+        fExciseNumber2:
+          $ref: '#/components/schemas/Seed'
+        otherFidR:
+          $ref: '#/components/schemas/ChoiceSelector'
+        otherFidN:
+          type: array
+          items:
+            type: string
+        reg3rd:
+          $ref: '#/components/schemas/ChoiceSelector'
+      required:
+        - eoCode
+        - fAddress
+        - fCountry
+        - fType
+        - fStatus
+        - fExciseNumber1
+        - otherFidR
+        - reg3rd
+      example:
+        eoId: "51q+$000000000025"
+        eoCode: "dZU51X"
+        fAddress: {
+          street: "Mainstreet",
+          houseNumber: "1a",
+          zipCode: "1000",
+          city: "The greatest city on earth"
+        }
+        fCountry: "DE"
+        fType: "ManufacturingSiteWithWarehouse"
+        fStatus: true
+        fExciseNumber1: true
+        fExciseNumber2: "DEabcdef12345"
+        otherFidR: true
+        otherFidN: ["someOtherId", "yetAnotherId"]
+        reg3rd: false
+#        
+# Machine-ID Order
+    MachineIdOrderParameter:
+      type: array
+      items:
+        type: object
+        properties:
+          postion:
+            $ref: '#/components/schemas/OrderPosition'
+          details:
+            $ref: '#/components/schemas/MachineIdOrderDetails'
+        required:
+          - position
+          - details
+      minItems: 1
+#
+    MachineIdOrderDetails:
+      type: object
+      properties:
+        eoCode:
+          $ref: '#/components/schemas/ConfirmationCode'
+        fId:
+          $ref: '#/components/schemas/Fid'
+        mProducer:
+          $ref: '#/components/schemas/MachineProducer'
+        mModel:
+          $ref: '#/components/schemas/MachineModel'
+        mNumber:
+          $ref: '#/components/schemas/MachineSerialNumber'
+        mCapacity:
+          $ref: '#/components/schemas/MachineCapacity'
+      required:
+        - eoCode
+        - fId
+        - mProducer
+        - mModel
+        - mNumber
+        - mCapacity
+#
+    MachineIdCorrectionOrderParameter:
+      type: object
+      properties:
+        eoCode:
+          $ref: '#/components/schemas/ConfirmationCode'
+        fId:
+          $ref: '#/components/schemas/Fid'
+        mProducer:
+          $ref: '#/components/schemas/MachineProducer'
+        mModel:
+          $ref: '#/components/schemas/MachineModel'
+        mNumber:
+          $ref: '#/components/schemas/MachineSerialNumber'
+        mCapacity:
+          $ref: '#/components/schemas/MachineCapacity'
+      required:
+        - eoCode
+        - fId
+        - mProducer
+        - mModel
+        - mNumber
+        - mCapacity
+#
+# ID order result types
+#
+    EoIdOrderResult:
+      type: object
+      properties:
+        idList:  
+          type: array
+          items:
+            type: object
+            properties:
+              position:
+                $ref: '#/components/schemas/OrderPosition'
+              eoId:
+                $ref: '#/components/schemas/EoId'
+              confirmationCode:
+                $ref: '#/components/schemas/ConfirmationCode'
+            required:
+              - position
+              - eoId
+              - confirmationCode
+      required:
+        - idList
+#
+    FidOrderResult:
+      type: object
+      properties:
+        idList:  
+          type: array
+          items:
+            type: object
+            properties:
+              position:
+                $ref: '#/components/schemas/OrderPosition'
+              fId:
+                $ref: '#/components/schemas/Fid'
+            required:
+              - position
+              - fid
+      required:
+        - idList
+#
+    MidOrderResult:
+      type: object
+      properties:
+        idList:  
+          type: array
+          items:
+            type: object
+            properties:
+              position:
+                $ref: '#/components/schemas/OrderPosition'
+              mId:
+                $ref: '#/components/schemas/Mid'
+            required:
+              - position
+              - mid
+      required:
+        - idList        
+#
+# UI order types
+#
+    UpUiOrderParameter:
+      type: object
+      properties:
+        fId:
+          $ref: '#/components/schemas/Fid'
+        processType:
+          $ref: '#/components/schemas/ChoiceSelector'
+        mId:
+          $ref: '#/components/schemas/Mid'
+        pType:
+          $ref: '#/components/schemas/TobaccoProductType'
+        pOtherType:
+          $ref: '#/components/schemas/TobaccoProductTypeOther'
+        pCn:
+          $ref: '#/components/schemas/CombinedNomenclatureCode'
+        pBrand:
+          $ref: '#/components/schemas/ProductBrand'
+        pWeight:
+          $ref: '#/components/schemas/ProductAvgGrossWeight'
+        tpId:
+          $ref: '#/components/schemas/EuCegTobaccoProductId'
+        tpPn:
+          $ref: '#/components/schemas/EuCegTobaccoProductNumber'
+        intendedMarket:
+          $ref: '#/components/schemas/IsoCountry'
+        intendedRoute1:
+          $ref: '#/components/schemas/ChoiceSelector'
+        intendedRoute2:
+          $ref: '#/components/schemas/IsoCountry'
+        import:
+          $ref: '#/components/schemas/ChoiceSelector'
+        reqQuantity:
+          $ref: '#/components/schemas/Quantity'
+        orderProcessing:
+          $ref: '#/components/schemas/OrderProcessingPriority'
+        webHookBase:
+          $ref: '#/components/schemas/WebHook'
+        gtin:
+          $ref: '#/components/schemas/Gtin'
+      required:
+        - fid
+        - pType
+        - pBrand
+        - pWeight
+        - intendedMarket
+        - intendedRoute1
+        - import
+        - reqQuantity
+      example:
+        fId: "51q<$000000000025000021"
+        processType: true
+        mId: "51q>$000000000025000003"
+        pType: "Cigarette"
+        pCn: "12345678"
+        pBrand: "Greatest Cigarette on Earth"
+        pWeight: 50.2
+        tpId: "12345-18-12345"
+        tpPn: "1234567890"
+        intendedMarket: "IT"
+        intendedRoute1: true
+        intendedRoute2: "AT"
+        import: false
+        reqQuantity: 50000
+        orderProcessing: "ImmediateProcessingNoRecallPossible"
+        webHookBase: "https://notifications.acme.eu/upui/"
+        gtin: "0022140002355"      
+#    
+    AuiOrderParameter:
+      type: object
+      properties:
+        fId:
+          $ref: '#/components/schemas/Fid'  
+        reqQuantity:
+          $ref: '#/components/schemas/Quantity'          
+#
+# UI order result types
+#
+    UiOrderResponse:
+      description: This type is used in a response to a upUI order
+      properties:
+        orderId:
+          $ref: '#/components/schemas/OrderId'
+        recallCode:
+          $ref: '#/components/schemas/RecallCode'          
+      required:
+        - orderId
+        - recallCode
+#
+# Error types
+#
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
