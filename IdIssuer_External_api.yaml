@@ -1,6 +1,6 @@
 openapi: "3.0.1"
 info:
-  version: 1.0.0
+  version: 1.0.2
   title: Tobacco Track&Trace ID Issuer API
   description: >- 
     This API is offered by the ID Issuer to economic operators (EO). By means
@@ -309,9 +309,9 @@ paths:
                 $ref: "#/components/schemas/Error"
   /operator/{identifier}:
     put:
-      summary: Submit an order to correct properties of an economic operator maintained  
-        in the registry. This operation can be applied to information related to the  
-        own company or a retail operator acting on behalf of.
+      summary: Submit an order to correct information regarding the EO's identifier.  
+        This correction can concern information about the company itself or about  
+        a retailer on whose behalf the EO acts.
       tags:
         - economic operator IDs
       parameters:
@@ -359,8 +359,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"    
     delete:
-      summary: Submit an order to deactivate an EO-ID. This operation can be applied   
-        to the registation of the own company or to a retail operator acting on behalf of.  
+      summary: Submit an order to deactivate an EO-ID. The deactivation can   
+        concern the company itself or a retailer on whose behalf the EO acts.  
         All assets will be deactivated, too, linked with the affected EO.
       tags:
         - economic operator IDs
@@ -476,9 +476,9 @@ paths:
                 $ref: "#/components/schemas/Error"
   /facility/{identifier}:
     put:
-      summary: Submit an order to correct properties of an facility-ID.   
-        This operation can be applied to information related to own facilities    
-        or facilities of a retail operator acting on behalf of.
+      summary: Submit an order to correct information regarding a facility identifier.  
+        This correction can concern a facility of the company itself or about  
+        a retailer's facility on whose behalf the EO acts.
       tags:
         - facility IDs
       parameters:
@@ -527,10 +527,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"    
     delete:
-      summary: Submit an order to deactivate an facility-ID. This operation can be applied   
-        to a facility of the own company or to a retail operator's facility acting  
-        on behalf of. All machines will be deactivated, too, linked with the affected  
-        facility.
+      summary: Submit an order to deactivate a facility-ID. The deactivation can   
+        concern a facility of the company itself or a retailer's facility on  
+        whose behalf the EO acts. If applicable, all machines will be deactivated,  
+        too, linked with the affected facility.
       tags:
         - facility IDs
       parameters:
@@ -574,7 +574,7 @@ paths:
                   oneOf:
                     - $ref: '#/components/schemas/Fid'
                     - $ref: '#/components/schemas/Mid'
-                example: ['51q<$000000000025000021', '51q>$000000000025000003' ]
+                example: ['###<1!000000000025000021', '###>1!000000000025000003' ]
         400:
           description: Bad request, e.g. parameter error
           content:
@@ -726,7 +726,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Mid'
-                example: ['51q>$000000000025000002', '51q>$000000000025000003' ]
+                example: ['###>1!000000000025000002', '###>1!000000000025000003' ]
         400:
           description: Bad request, e.g. parameter error
           content:
@@ -762,7 +762,7 @@ components:
       type: string
       minLength: 11
       maxLength: 11
-      description: An order ID
+      description: An order ID in the format YYNNNNNNNNN
       format: '^\d{11}$'
       example: "18000093616"  
     OrderStatus:
@@ -810,19 +810,19 @@ components:
       maxLength: 50
     EoId:
       type: string
-      example: '51q+$000000000025'
-      minLength: 17
-      maxLength: 17
+      example: '###+1!000000000025'
+      minLength: 18
+      maxLength: 18
     Fid:
       type: string      
-      minLength: 23
-      maxLength: 30      
-      example: '51q<$000000000025000021'      
+      minLength: 24
+      maxLength: 31      
+      example: '###<1!000000000025000021'      
     Mid:
       type: string 
-      minLength: 23
-      maxLength: 23      
-      example: '51q>$000000000025000003'
+      minLength: 24
+      maxLength: 24      
+      example: '###>1!000000000025000003'
     ConfirmationCode:
       description: Confirmation code acc. to TPD - Annex II
       type: string
@@ -852,7 +852,7 @@ components:
       type: string
       minLength: 1
       maxLength: 10    
-      example: '1000'
+      example: '14195'
     City:
       type: string
       minLength: 1
@@ -902,7 +902,7 @@ components:
     Tin:
       description: acc. To https://ec.europa.eu/taxation_customs/tin/
       type: string
-      minLength: 16
+      minLength: 8
       maxLength: 16
       example: '99999999999'
     Seed:
@@ -1211,7 +1211,7 @@ components:
         - otherFidR
         - reg3rd
       example:
-        eoId: "51q+$000000000025"
+        eoId: "###+1!000000000025"
         eoCode: "dZU51X"
         fAddress: {
           street: "Mainstreet",
@@ -1268,7 +1268,7 @@ components:
         - otherFidR
         - reg3rd
       example:
-        eoId: "51q+$000000000025"
+        eoId: "###+1!000000000025"
         eoCode: "dZU51X"
         fAddress: {
           street: "Mainstreet",
@@ -1456,9 +1456,9 @@ components:
         - import
         - reqQuantity
       example:
-        fId: "51q<$000000000025000021"
+        fId: "###<1!000000000025000021"
         processType: true
-        mId: "51q>$000000000025000003"
+        mId: "###>1!000000000025000003"
         pType: "Cigarette"
         pCn: "12345678"
         pBrand: "Greatest Cigarette on Earth"
@@ -1507,3 +1507,16 @@ components:
           format: int32
         message:
           type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              fieldName:
+                type: string
+              message:
+                type: string
+            required:
+              - fieldName
+              - message
+          minItems: 1
