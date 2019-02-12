@@ -7,7 +7,7 @@ info:
     of this API EOs may submit, review, or revoke orders for organizations (3rd party 
     registration), facilities, machines, unit level UIs, or aggregation level UIs.
 servers:
-  - url: https://tobedefinedlater/v1
+  - url: https://idissuer.test.de.id-issuer.eu/v1
 paths:
   /api:
     get:
