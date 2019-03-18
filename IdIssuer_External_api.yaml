@@ -1,13 +1,36 @@
 openapi: "3.0.1"
 info:
-  version: 1.0.2
+  version: 1.0.3.1
   title: Tobacco Track&Trace ID Issuer API
-  description: >- 
-    This API is offered by the ID Issuer to economic operators (EO). By means
-    of this API EOs may submit, review, or revoke orders for organizations (3rd party 
-    registration), facilities, machines, unit level UIs, or aggregation level UIs.
+  description: >-
+    <p>This API is offered by the ID Issuer to economic operators (EO). By means of this API EOs may submit, review, or revoke orders for organizations (3rd party registration), facilities, machines, unit level UIs, or aggregation level UIs.</p><p>The API is protected by mutual authentication based on X.509 TLS certificates as well as by OpenIdConnect. In order to access an endpoint a valid token must be obtained from the OpenIdConnect token endpoint before. The token request takes the following parameters</p><p><ul><li><i>username</i>: obtained via Selfmanagement Portal API credential dialog</li><li><i>password</i>: obtained via Selfmanagement Portal API credential dialog</li><li><i>client_id</i>: fixed value 'self-management-gui'</li><li><i>grant_type</i>: fixed value 'password'</li><li><i>client_secret</i>: obtained via Selfmanagement Portal API credential dialog</li><li><i>scope</i>: fixed value 'openid'</li></ul></p><p>Example request:<br/><code>POST /auth/realms/idissuer/protocol/openid-connect/token<br/>Content-Type: application/x-www-form-urlencoded<br/>cache-control: no-cache<br/>User-Agent: PostmanRuntime/7.6.1<br/>Accept: */*<br/>Host: keycloak.test.de.id-issuer.eu<br/>accept-encoding: gzip, deflate<br/>content-length: 151<br/>username=********&password=********&client_id=self-management-gui&grant_type=password&client_secret=*****&scope=openid</code></p><p>Example reply:<br/><code>HTTP/1.1 200<br/>status: 200<br/>Server: nginx<br/>Date: Thu, 14 Mar 2019 10:23:59 GMT<br/>Content-Type: application/json<br/>Content-Length: 3614<br/>Connection: keep-alive<br/>Cache-Control: no-store<br/>Set-Cookie: KC_RESTART=; Version=1; Expires=Thu, 01-Jan-1970 00:00:10 GMT; Max-Age=0; Path=/auth/realms/idissuer/; HttpOnly<br/>Pragma: no-cache<br/><br/>{"access_token":"*****","not-before-policy":1541410129,"session_state":"******","scope":"openid email profile"}<br/>200</code></p><p>The access token shall be than used as a bearer token on subsequent requests to the API</p><p>Example request<br/><code>GET /v1/order/482<br/>cache-control: no-cache<br/>Authorization: Bearer ****<br/>User-Agent: PostmanRuntime/7.6.1<br/>Accept: */*<br/>Host: idissuer.test.de.id-issuer.eu</code</p>
+#
+# Version History
+# 1.0.3.1   - fixes in type EoIdCorrectionOrderParameter:
+#             - add property eoIdOnBehalf
+#             - remove redundant property eoId (expressed by endpoint's path parameter)
+#           - fixes in type UpUiOrderParameter
+#             - add property deliveryMethod of type DeliveryMethod
+#           - fix typo 'postion' in type MachineIdOrderParameter
+# 1.0.3     - new url value
+#           - type GTIN: length changed from 13 to 14
+#           - type GLN completely removed
+#           - real ID Issuer prefix included in examples
+#           - corrected example value of field vatR from true to false for types
+#               3rdPartyEoIdOrderDetails EoIdCorrectionOrderParameter
+#           - added types and endpoint for UI download
+#           - changed definition of types EoId, Fid, Mid
+#
+# 1.0.2     - extension of type Error by details-array
+#
 servers:
-  - url: https://idissuer.test.de.id-issuer.eu/v1
+  - url: https://{environment}.de.id-issuer.eu/v1
+    variables:
+      environment:
+        enum:
+          - api             # Production server
+          - idissuer.test   # Public test server
+        default: api        # Production server
 paths:
   /api:
     get:
@@ -17,13 +40,13 @@ paths:
         - api-information
       responses:
         200:
-          description: API definition specified in OpenAPI Specification   
+          description: API definition specified in OpenAPI Specification
             notation (this file)
           content:
-            text/plain:    
+            text/plain:
               schema:
                 type: string
-                example: "openapi: 3.0.1\n\tinfo:\n\t\tversion: 1.0.1   
+                example: "openapi: 3.0.1\n\tinfo:\n\t\tversion: 1.0.1
                 \n\t\ttitle: Tobacco Track&Trace ID Issuer API\n..."
         default:
           description: unexpected error
@@ -36,7 +59,7 @@ paths:
       summary: List all open orders created by the invoking EO
       operationId: getAllOpenOrders
       tags:
-        - orders       
+        - orders
       responses:
         200:
           description: List of open orders. May be null, if no order is open.
@@ -58,10 +81,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"        
+                $ref: "#/components/schemas/Error"
   /order/{orderId}:
     get:
-      summary: Provides information on an ID order in an arbitrary   
+      summary: Provides information on an ID order in an arbitrary
         processing state
       operationId: GetOrderById
       tags:
@@ -95,7 +118,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"        
+                $ref: "#/components/schemas/Error"
     delete:
       summary: Delete an order
       tags:
@@ -115,7 +138,7 @@ paths:
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/RecallReasons' 
+            $ref: '#/components/schemas/RecallReasons'
         - name: recallReason2
           in: query
           required: false
@@ -126,10 +149,10 @@ paths:
           in: query
           required: false
           schema:
-            $ref: '#/components/schemas/RecallReasonOther'            
+            $ref: '#/components/schemas/RecallReasonOther'
       responses:
         200:
-          description: Order deleted. Id of the deleted order is returned   
+          description: Order deleted. Id of the deleted order is returned
             in the message body
           content:
             application/json:
@@ -140,7 +163,7 @@ paths:
         404:
           description: Order not found
         410:
-          description: The recall period for this order has been elapsed. The   
+          description: The recall period for this order has been elapsed. The
             order can't be recalled any more.
         503:
           description: Service temporary unavailable
@@ -157,22 +180,22 @@ paths:
                 $ref: "#/components/schemas/Error"
   /upui:
     post:
-      summary: Submit a new order for unit packet level unique identifiers.  
+      summary: Submit a new order for unit packet level unique identifiers.
         Only one order per operation is allowed.
       tags:
-        - unique identifiers 
+        - unique identifiers
       requestBody:
         description: The information specified in TPD Implementation act, Annex II for
           UI orders have to be submitted in the request body.
-        content: 
+        content:
           application/json:
             schema:
               $ref: '#/components/schemas/UpUiOrderParameter'
       responses:
         202:
-          description: Order accepted, the order ID for this order is enclosed   
-            in the response body. The UIs will be created at a later point in time.   
-            Once the creation is done the requestor is notified, either by webhook,   
+          description: Order accepted, the order ID for this order is enclosed
+            in the response body. The UIs will be created at a later point in time.
+            Once the creation is done the requestor is notified, either by webhook,
             if supplied in the order, or by email (default)
           content:
             application/json:
@@ -191,7 +214,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -202,36 +225,36 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"     
+                $ref: "#/components/schemas/Error"
   /aui:
     post:
-      summary: Submit a new order for aggregated level unique identifiers.  
+      summary: Submit a new order for aggregated level unique identifiers.
         Only one order per operation is allowed.
       tags:
-        - unique identifiers 
+        - unique identifiers
       requestBody:
         description: The information specified in TPD Implementation act, Annex II for
           UI orders have to be submitted in the request body.
-        content: 
+        content:
           application/json:
             schema:
               $ref: '#/components/schemas/AuiOrderParameter'
       responses:
         202:
-          description: Order accepted, the order ID for this order is enclosed   
-            in the response body. The UIs will be created at a later point in time.   
-            Once the creation is done the requestor is notified, either by webhook,   
+          description: Order accepted, the order ID for this order is enclosed
+            in the response body. The UIs will be created at a later point in time.
+            Once the creation is done the requestor is notified, either by webhook,
             if supplied in the order, or by email (default)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UiOrderResponse'   
+                $ref: '#/components/schemas/UiOrderResponse'
           links:
             GetOrderById:
               description: >
@@ -245,7 +268,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -256,40 +279,83 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"                 
-  /operator:
-    post:
-      summary: Submit an order for a 3rd party economic operator registration.  
-        Multiple EOs may be registered within one order.
+                $ref: "#/components/schemas/Error"
+  /downloads/{orderId}/download:
+    get:
+      summary: This endpoint is used to download upUIs/aUIs order before.
       tags:
-        - economic operator IDs
-      requestBody:
-          description: A not empty array of ID orders. Each id order item must   
-            hold the information specified in TPD Implementation act, Annex II
-          content: 
-            application/json:
-              schema:
-                $ref: '#/components/schemas/3rdPartyEoIdOrderParameter'
+        - unique identifiers
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/OrderId"
       responses:
         200:
-          description: Order accepted. The created identifiers are enclosed   
-            in the body of the response.
+          description: The response body contains information on the orderID, the UI type and the amount of UIs delivered followed by an array of UIs
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EoIdOrderResult'   
+                $ref: "#/components/schemas/UiList"
         400:
           description: Bad request, e.g. parameter error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
+        401:
+          description: no order found for submitted order-id
+        404:
+          description: missing authorization
+        415:
+          description: unsupported media type
+        503:
+          description: service temporary unavailable
+          headers:
+            Retry-After:
+              description: Retry-After header field acc. to RFC7231, value denoted in seconds
+              schema:
+                type: integer
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /operator:
+    post:
+      summary: Submit an order for a 3rd party economic operator registration.
+        Multiple EOs may be registered within one order.
+      tags:
+        - economic operator IDs
+      requestBody:
+        description: A not empty array of ID orders. Each id order item must
+          hold the information specified in TPD Implementation act, Annex II
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/3rdPartyEoIdOrderParameter'
+      responses:
+        200:
+          description: Order accepted. The created identifiers are enclosed
+            in the body of the response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EoIdOrderResult'
+        400:
+          description: Bad request, e.g. parameter error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -300,7 +366,7 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
@@ -309,8 +375,8 @@ paths:
                 $ref: "#/components/schemas/Error"
   /operator/{identifier}:
     put:
-      summary: Submit an order to correct information regarding the EO's identifier.  
-        This correction can concern information about the company itself or about  
+      summary: Submit an order to correct information regarding the EO's identifier.
+        This correction can concern information about the company itself or about
         a retailer on whose behalf the EO acts.
       tags:
         - economic operator IDs
@@ -321,15 +387,15 @@ paths:
           schema:
             $ref: '#/components/schemas/EoId'
       requestBody:
-        description: The complete master record data acc. to TPD Implementation   
+        description: The complete master record data acc. to TPD Implementation
           act, Annex II including the modifications
-        content: 
+        content:
           application/json:
             schema:
               $ref: '#/components/schemas/EoIdCorrectionOrderParameter'
       responses:
         200:
-          description: Order accepted, entity modified. The ID of the modified entity   
+          description: Order accepted, entity modified. The ID of the modified entity
             is enclosed in the body of the response.
           content:
             application/json:
@@ -340,7 +406,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -351,16 +417,16 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"    
+                $ref: "#/components/schemas/Error"
     delete:
-      summary: Submit an order to deactivate an EO-ID. The deactivation can   
-        concern the company itself or a retailer on whose behalf the EO acts.  
+      summary: Submit an order to deactivate an EO-ID. The deactivation can
+        concern the company itself or a retailer on whose behalf the EO acts.
         All assets will be deactivated, too, linked with the affected EO.
       tags:
         - economic operator IDs
@@ -370,7 +436,7 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/EoId'
-          description: The ID of the EO to be deactivated            
+          description: The ID of the EO to be deactivated
         - name: eoCode
           in: query
           required: true
@@ -382,19 +448,19 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/ChoiceSelector'
-          description: This paramter is set to true, if this order is made on behalf  
-            of a retail operator            
+          description: This paramter is set to true, if this order is made on behalf
+            of a retail operator
         - name: eoId
           in: query
           required: false
           schema:
-            $ref: '#/components/schemas/EoId'   
-          description: If parameter reg3rd is true, this parameter holds the EO-Id of  
+            $ref: '#/components/schemas/EoId'
+          description: If parameter reg3rd is true, this parameter holds the EO-Id of
             the retail operator this order is made on behalf of
       responses:
         200:
-          description: Order accepted, entity deactivated. Also depending entities    
-            have been deactivated, e.g. all machines will be deactivated along with an 
+          description: Order accepted, entity deactivated. Also depending entities
+            have been deactivated, e.g. all machines will be deactivated along with an
             deactivation order on the facility the machines are deployed in.
             The identifiers of the deactivated entities are returned in the response body.
           content:
@@ -411,7 +477,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -422,41 +488,41 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"   
+                $ref: "#/components/schemas/Error"
   /facility:
     post:
-      summary: Submit an order for a facility id. This operation serves both  
-        cases, registration of own assets and 3rd party registration.  
+      summary: Submit an order for a facility id. This operation serves both
+        cases, registration of own assets and 3rd party registration.
         Multiple facilities can be processed by one order.
       tags:
         - facility IDs
       requestBody:
-          description: A not empty array of ID orders. Each id order item must   
+          description: A not empty array of ID orders. Each id order item must
             hold the information specified in TPD Implementation act, Annex II
-          content: 
+          content:
             application/json:
               schema:
                 $ref: '#/components/schemas/FacilityIdOrderParameter'
       responses:
         200:
-          description: Order accepted. The created identifiers are enclosed   
+          description: Order accepted. The created identifiers are enclosed
             in the body of the response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FidOrderResult'   
+                $ref: '#/components/schemas/FidOrderResult'
         400:
           description: Bad request, e.g. parameter error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -467,7 +533,7 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
@@ -476,8 +542,8 @@ paths:
                 $ref: "#/components/schemas/Error"
   /facility/{identifier}:
     put:
-      summary: Submit an order to correct information regarding a facility identifier.  
-        This correction can concern a facility of the company itself or about  
+      summary: Submit an order to correct information regarding a facility identifier.
+        This correction can concern a facility of the company itself or about
         a retailer's facility on whose behalf the EO acts.
       tags:
         - facility IDs
@@ -487,28 +553,28 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/Fid'
-          description: The ID of the facility its information shall be corrected            
+          description: The ID of the facility its information shall be corrected
       requestBody:
-        description: The complete master record data acc. to TPD Implementation   
+        description: The complete master record data acc. to TPD Implementation
           act, Annex II including the modifications
-        content: 
+        content:
           application/json:
             schema:
               $ref: '#/components/schemas/FacilityIdCorrectionOrderParameter'
       responses:
         200:
-          description: Order accepted, entity modified. The ID of the modified entity   
+          description: Order accepted, entity modified. The ID of the modified entity
             is enclosed in the body of the response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Fid'   
+                $ref: '#/components/schemas/Fid'
         400:
           description: Bad request, e.g. parameter error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -519,17 +585,17 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"    
+                $ref: "#/components/schemas/Error"
     delete:
-      summary: Submit an order to deactivate a facility-ID. The deactivation can   
-        concern a facility of the company itself or a retailer's facility on  
-        whose behalf the EO acts. If applicable, all machines will be deactivated,  
+      summary: Submit an order to deactivate a facility-ID. The deactivation can
+        concern a facility of the company itself or a retailer's facility on
+        whose behalf the EO acts. If applicable, all machines will be deactivated,
         too, linked with the affected facility.
       tags:
         - facility IDs
@@ -550,20 +616,20 @@ paths:
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/ChoiceSelector'  
-          description: This paramter is set to true, if this order is made on behalf  
+            $ref: '#/components/schemas/ChoiceSelector'
+          description: This paramter is set to true, if this order is made on behalf
             of a retail operator
         - name: eoId
           in: query
           required: false
           schema:
             $ref: '#/components/schemas/EoId'
-          description: If parameter reg3rd is true, this parameter holds the EO-Id of  
-            the retail operator this order is made on behalf of            
+          description: If parameter reg3rd is true, this parameter holds the EO-Id of
+            the retail operator this order is made on behalf of
       responses:
         200:
-          description: Order accepted, entity deactivated. Also depending entities    
-            have been deactivated, e.g. all machines will be deactivated along with an 
+          description: Order accepted, entity deactivated. Also depending entities
+            have been deactivated, e.g. all machines will be deactivated along with an
             deactivation order on the facility the machines are deployed in.
             The identifiers of the deactivated entities are returned in the response body.
           content:
@@ -574,13 +640,13 @@ paths:
                   oneOf:
                     - $ref: '#/components/schemas/Fid'
                     - $ref: '#/components/schemas/Mid'
-                example: ['###<1!000000000025000021', '###>1!000000000025000003' ]
+                example: ['QCBDR<1!000000000025000021', 'QCBDR>1!000000000025000003' ]
         400:
           description: Bad request, e.g. parameter error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -591,40 +657,40 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"                
+                $ref: "#/components/schemas/Error"
   /machine:
     post:
-      summary: Submit an order for a machine id. Multiple machines can be  
+      summary: Submit an order for a machine id. Multiple machines can be
         processed by one order.
       tags:
         - machine IDs
       requestBody:
-          description: A not empty array of ID orders. Each id order item must   
+          description: A not empty array of ID orders. Each id order item must
             hold the information specified in TPD Implementation act, Annex II
-          content: 
+          content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MachineIdOrderParameter'
       responses:
         200:
-          description: Order accepted. The created identifiers are enclosed   
+          description: Order accepted. The created identifiers are enclosed
             in the body of the response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MidOrderResult'   
+                $ref: '#/components/schemas/MidOrderResult'
         400:
           description: Bad request, e.g. parameter error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -635,7 +701,7 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
@@ -655,26 +721,26 @@ paths:
             $ref: '#/components/schemas/Mid'
           description: The machine's ID to correct its information
       requestBody:
-        description: The complete master record data acc. to TPD Implementation   
+        description: The complete master record data acc. to TPD Implementation
           act, Annex II including the modifications
-        content: 
+        content:
           application/json:
             schema:
               $ref: '#/components/schemas/MachineIdCorrectionOrderParameter'
       responses:
         200:
-          description: Order accepted, entity modified. The ID of the modified entity   
+          description: Order accepted, entity modified. The ID of the modified entity
             is enclosed in the body of the response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Mid'   
+                $ref: '#/components/schemas/Mid'
         400:
           description: Bad request, e.g. parameter error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -685,13 +751,13 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"    
+                $ref: "#/components/schemas/Error"
     delete:
       summary: Submit an order to deactivate a machine-ID.
       tags:
@@ -702,7 +768,7 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/Mid'
-          description: The ID of the machine to be deactivated            
+          description: The ID of the machine to be deactivated
         - name: eoCode
           in: query
           required: true
@@ -714,7 +780,7 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/Fid'
-          description: The ID of the facility the machine to be deactivated is  
+          description: The ID of the facility the machine to be deactivated is
             assigned to
       responses:
         200:
@@ -726,13 +792,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Mid'
-                example: ['###>1!000000000025000002', '###>1!000000000025000003' ]
+                example: ['QCBDR>1!000000000025000002', 'QCBDR>1!000000000025000003' ]
         400:
           description: Bad request, e.g. parameter error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"           
+                $ref: "#/components/schemas/Error"
         401:
           description: missing authorization
         415:
@@ -743,13 +809,13 @@ paths:
             Retry-After:
               description: Retry-After header field acc. to RFC7231, value denoted in seconds
               schema:
-                type: integer          
+                type: integer
         default:
           description: unexpected error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"                
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
 #
@@ -764,7 +830,7 @@ components:
       maxLength: 11
       description: An order ID in the format YYNNNNNNNNN
       format: '^\d{11}$'
-      example: "18000093616"  
+      example: "18000093616"
     OrderStatus:
       type: string
       enum:
@@ -773,20 +839,20 @@ components:
         - ready-for-delivery
         - delivered
         - closed
-        - cancled
+        - canceled
       example:
         in-processing
     OrderSummary:
       type: string
-      description: >- 
-        A summary on the order. Summary content and item order are 
+      description: >-
+        A summary on the order. Summary content and item order are
         unspecified and my be subject to changes in future releases.
-      example: "2018/09/13, 20.000 UIs, product x"      
+      example: "2018/09/13, 20.000 UIs, product x"
     OrderInfoObject:
       type: object
       properties:
         orderId:
-          $ref: '#/components/schemas/OrderId' 
+          $ref: '#/components/schemas/OrderId'
         orderStatus:
           $ref: '#/components/schemas/OrderStatus'
         orderSummary:
@@ -800,7 +866,75 @@ components:
       items:
         $ref: '#/components/schemas/OrderInfoObject'
       nullable: true
-
+    UiType:
+      type: string
+      enum:
+        - upUI
+        - aUI
+    UpUi:
+      type: string
+      minLength: 35
+      maxLength: 35
+      example: 'QCBDRa20wBnq5V300003172440841dTQM90'
+    AUi:
+      type: string
+      minLength: 39
+      maxLength: 39
+      example: 'CQBDRG1jEwk74JR0wBnq5xqK7w303kPV38aH0S+'
+    UpUiList:
+      type: object
+      properties:
+        orderId:
+          $ref: '#/components/schemas/OrderId'
+        idType:
+          $ref: '#/components/schemas/UiType'
+        amount:
+          $ref: '#/components/schemas/Quantity'
+        uiList:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpUi'
+          minItems: 1
+          maxItems: 1000000
+      required:
+        - orderId
+        - idType
+        - amount
+        - uiList
+      example:
+        orderId: 32789
+        idType: 'upUI'
+        amount: 2
+        uiList: [QCBDRa20wBnq5V300003172440841dTQM90, QCBDRa2fT3wp08200003172440841dTQM90]
+    AUiList:
+      type: object
+      properties:
+        orderId:
+          $ref: '#/components/schemas/OrderId'
+        idType:
+          $ref: '#/components/schemas/UiType'
+        amount:
+          $ref: '#/components/schemas/Quantity'
+        uiList:
+          type: array
+          items:
+            $ref: '#/components/schemas/AUi'
+          minItems: 1
+          maxItems: 1000000
+      required:
+        - orderId
+        - idType
+        - amount
+        - uiList
+    UiList:
+      oneOf:
+        - $ref: '#/components/schemas/UpUiList'
+        - $ref: '#/components/schemas/AUiList'
+      example:
+        orderId: 32789
+        idType: 'upUI'
+        amount: 2
+        uiList: [QCBDRa20wBnq5V300003172440841dTQM90, QCBDRa2fT3wp08200003172440841dTQM90]
 #
 # basic types used in operations on identifiers stored in the registry
 #
@@ -810,25 +944,25 @@ components:
       maxLength: 50
     EoId:
       type: string
-      example: '###+1!000000000025'
-      minLength: 18
-      maxLength: 18
+      example: 'QCBDR+1DE020054'
+      minLength: 15
+      maxLength: 15
     Fid:
-      type: string      
-      minLength: 24
-      maxLength: 31      
-      example: '###<1!000000000025000021'      
+      type: string
+      minLength: 21
+      maxLength: 21
+      example: 'QCBDR<1DE020054000048'
     Mid:
-      type: string 
-      minLength: 24
-      maxLength: 24      
-      example: '###>1!000000000025000003'
+      type: string
+      minLength: 21
+      maxLength: 21
+      example: 'QCBDR>1DE020054000012'
     ConfirmationCode:
       description: Confirmation code acc. to TPD - Annex II
       type: string
       minLength: 6
       maxLength: 6
-      format: '^[0-9a-kmnp-zA-KMNP-Z]{6}$'     
+      format: '^[0-9a-kmnp-zA-KMNP-Z]{6}$'
       example: 'dZU51X'
     ChoiceSelector:
       type: boolean
@@ -841,7 +975,7 @@ components:
     Street:
       type: string
       minLength: 1
-      maxLength: 40    
+      maxLength: 40
       example: 'Mainstreet'
     HouseNumber:
       type: string
@@ -851,7 +985,7 @@ components:
     ZipCode:
       type: string
       minLength: 1
-      maxLength: 10    
+      maxLength: 10
       example: '14195'
     City:
       type: string
@@ -886,13 +1020,6 @@ components:
       maxLength: 100
       format: email
       example: 'here@acme.eu'
-    Gln:
-      description: GS1 global location number
-      type: string
-      minLength: 13
-      maxLength: 13
-      format: '^\d{13}$'
-      example: '9012345000004'
     VatId:
       description: see https://en.wikipedia.org/wiki/VAT_identification_number
       type: string
@@ -955,28 +1082,28 @@ components:
     CombinedNomenclatureCode:
       type: string
       minLength: 8
-      maxLength: 10       
+      maxLength: 10
       format: '^\d{8,10}$'
     ProductBrand:
-      $ref: '#/components/schemas/DescriptionType'    
+      $ref: '#/components/schemas/DescriptionType'
     Gtin:
       type: string
-      minLength: 13
-      maxLength: 13
-      example: "0022140002355"
+      minLength: 14
+      maxLength: 14
+      example: "00221400023554"
     ProductAvgGrossWeight:
       type: number
       format: float
     EuCegTobaccoProductId:
       type: string
       minLength: 14
-      maxLength: 14       
+      maxLength: 14
       format: '^\d{5}-\d{2}-\d{5}$'
       description: EU-CEG TP-ID „Übermittler-ID–Jahr–Produktnummer“ (NNNNN–NN–NNNNN)
     EuCegTobaccoProductNumber:
       type: string
       minLength: 1
-      maxLength: 20       
+      maxLength: 20
       format: '^\d{1,20}$'
     Quantity:
       type: integer
@@ -986,7 +1113,7 @@ components:
     WebHook:
       type: string
       minLength: 1
-      maxLength: 250      
+      maxLength: 250
       format: uri
       example: 'https://notifications.acme.eu/upui/'
     OrderProcessingPriority:
@@ -1010,6 +1137,11 @@ components:
         - Other
     RecallReasonOther:
       $ref: '#/components/schemas/DescriptionType'
+    DeliveryMethod:
+      type: string
+      enum:
+        - Electronically
+        - Physically
 #
 # Types used in identifier orders
 #
@@ -1026,7 +1158,7 @@ components:
             $ref: '#/components/schemas/3rdPartyEoIdOrderDetails'
         required:
           - position
-          - details 
+          - details
       minItems: 1
 #
     3rdPartyEoIdOrderDetails:
@@ -1035,7 +1167,7 @@ components:
         eoName1:
           $ref: '#/components/schemas/EoName'
         eoName2:
-          $ref: '#/components/schemas/EoName'   
+          $ref: '#/components/schemas/EoName'
         eoAddress:
           $ref: '#/components/schemas/Address'
         eoCountryReg:
@@ -1058,8 +1190,6 @@ components:
           type: array
           items:
             type: string
-        companyGln:
-          $ref: '#/components/schemas/Gln'
       required:
         - eoName1
         - eoAddress
@@ -1077,7 +1207,7 @@ components:
         }
         eoCountryReg: "DE"
         eoEmail: "here@cornershop.eu"
-        vatR: true
+        vatR: false
         vatN: "DE999999999"
         eoExciseNumber1: false
         otherEoIdR: false
@@ -1085,14 +1215,12 @@ components:
     EoIdCorrectionOrderParameter:
       type: object
       properties:
-        eoId:
-          $ref: '#/components/schemas/EoId'      
         eoCode:
           $ref: '#/components/schemas/ConfirmationCode'
         eoName1:
           $ref: '#/components/schemas/EoName'
         eoName2:
-          $ref: '#/components/schemas/EoName'   
+          $ref: '#/components/schemas/EoName'
         eoAddress:
           $ref: '#/components/schemas/Address'
         eoCountryReg:
@@ -1117,6 +1245,8 @@ components:
             type: string
         reg3rd:
           $ref: '#/components/schemas/ChoiceSelector'
+        eoIdOnBehalf:
+          $ref: '#/components/schemas/EoId'
         invoicingMethod:
           $ref: '#/components/schemas/InvoicingMethod'
         invoicingAddress:
@@ -1145,7 +1275,7 @@ components:
         }
         eoCountryReg: "DE"
         eoEmail: "here@acme.eu"
-        vatR: true
+        vatR: false
         vatN: "DE999999999"
         eoExciseNumber1: true
         eoExciseNumber2: "DEabcdef12345"
@@ -1153,7 +1283,7 @@ components:
         otherEoIdN: ["anAdditionalId"]
         reg3rd: false,
         invoicingMethod: "electronically"
-        invoicingAddress: "invoicing@acme.eu"      
+        invoicingAddress: "invoicing@acme.eu"
 #
 # Facility-ID order
     FacilityIdOrderParameter:
@@ -1164,17 +1294,17 @@ components:
           position:
             $ref: '#/components/schemas/OrderPosition'
           details:
-            $ref: '#/components/schemas/FacilityIdOrderDetails' 
+            $ref: '#/components/schemas/FacilityIdOrderDetails'
         required:
           - position
           - details
-      minItems: 1 
+      minItems: 1
 #
     FacilityIdOrderDetails:
       type: object
       properties:
         eoId:
-          $ref: '#/components/schemas/EoId'      
+          $ref: '#/components/schemas/EoId'
         eoCode:
           $ref: '#/components/schemas/ConfirmationCode'
         fAddress:
@@ -1199,8 +1329,6 @@ components:
             type: string
         reg3rd:
           $ref: '#/components/schemas/ChoiceSelector'
-        gln:
-          $ref: '#/components/schemas/Gln'          
       required:
         - eoCode
         - fAddress
@@ -1211,7 +1339,7 @@ components:
         - otherFidR
         - reg3rd
       example:
-        eoId: "###+1!000000000025"
+        eoId: "QCBDR+1!000000000025"
         eoCode: "dZU51X"
         fAddress: {
           street: "Mainstreet",
@@ -1227,13 +1355,12 @@ components:
         otherFidR: true
         otherFidN: ["someOtherId"]
         reg3rd: true
-        gln: "9012345000004"      
-#      
+#
     FacilityIdCorrectionOrderParameter:
       type: object
       properties:
         eoId:
-          $ref: '#/components/schemas/EoId'      
+          $ref: '#/components/schemas/EoId'
         eoCode:
           $ref: '#/components/schemas/ConfirmationCode'
         fAddress:
@@ -1268,7 +1395,7 @@ components:
         - otherFidR
         - reg3rd
       example:
-        eoId: "###+1!000000000025"
+        eoId: "QCBDR+1!000000000025"
         eoCode: "dZU51X"
         fAddress: {
           street: "Mainstreet",
@@ -1284,14 +1411,14 @@ components:
         otherFidR: true
         otherFidN: ["someOtherId", "yetAnotherId"]
         reg3rd: false
-#        
+#
 # Machine-ID Order
     MachineIdOrderParameter:
       type: array
       items:
         type: object
         properties:
-          postion:
+          position:
             $ref: '#/components/schemas/OrderPosition'
           details:
             $ref: '#/components/schemas/MachineIdOrderDetails'
@@ -1351,7 +1478,7 @@ components:
     EoIdOrderResult:
       type: object
       properties:
-        idList:  
+        idList:
           type: array
           items:
             type: object
@@ -1372,7 +1499,7 @@ components:
     FidOrderResult:
       type: object
       properties:
-        idList:  
+        idList:
           type: array
           items:
             type: object
@@ -1390,7 +1517,7 @@ components:
     MidOrderResult:
       type: object
       properties:
-        idList:  
+        idList:
           type: array
           items:
             type: object
@@ -1403,7 +1530,7 @@ components:
               - position
               - mid
       required:
-        - idList        
+        - idList
 #
 # UI order types
 #
@@ -1442,6 +1569,8 @@ components:
           $ref: '#/components/schemas/Quantity'
         orderProcessing:
           $ref: '#/components/schemas/OrderProcessingPriority'
+        deliveryMethod:
+          $ref: '#/components/schemas/DeliveryMethod'
         webHookBase:
           $ref: '#/components/schemas/WebHook'
         gtin:
@@ -1455,10 +1584,11 @@ components:
         - intendedRoute1
         - import
         - reqQuantity
+        - deliveryMethod
       example:
-        fId: "###<1!000000000025000021"
+        fId: "QCBDR<1!000000000025000021"
         processType: true
-        mId: "###>1!000000000025000003"
+        mId: "QCBDR>1!000000000025000003"
         pType: "Cigarette"
         pCn: "12345678"
         pBrand: "Greatest Cigarette on Earth"
@@ -1471,16 +1601,17 @@ components:
         import: false
         reqQuantity: 50000
         orderProcessing: "ImmediateProcessingNoRecallPossible"
+        deliveryMethod: 'Electronically'
         webHookBase: "https://notifications.acme.eu/upui/"
-        gtin: "0022140002355"      
-#    
+        gtin: "0022140002355"
+#
     AuiOrderParameter:
       type: object
       properties:
         fId:
-          $ref: '#/components/schemas/Fid'  
+          $ref: '#/components/schemas/Fid'
         reqQuantity:
-          $ref: '#/components/schemas/Quantity'          
+          $ref: '#/components/schemas/Quantity'
 #
 # UI order result types
 #
@@ -1490,7 +1621,7 @@ components:
         orderId:
           $ref: '#/components/schemas/OrderId'
         recallCode:
-          $ref: '#/components/schemas/RecallCode'          
+          $ref: '#/components/schemas/RecallCode'
       required:
         - orderId
         - recallCode
