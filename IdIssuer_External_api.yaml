@@ -836,7 +836,7 @@ components:
       enum: # values are returned in ALL_CAPS_SNAKE_CASE
         - STORED
         - IN_PROCESSING
-        - READY-FOR-DELIVERY
+        - READY_FOR_DELIVERY
         - DELIVERED
         - CLOSED
         - CANCELED
