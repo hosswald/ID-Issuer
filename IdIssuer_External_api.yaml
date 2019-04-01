@@ -833,13 +833,13 @@ components:
       example: "18000093616"
     OrderStatus:
       type: string
-      enum:
-        - stored
-        - in-processing
-        - ready-for-delivery
-        - delivered
-        - closed
-        - canceled
+      enum: # values are returned in ALL_CAPS_SNAKE_CASE
+        - STORED
+        - IN_PROCESSING
+        - READY-FOR-DELIVERY
+        - DELIVERED
+        - CLOSED
+        - CANCELED
       example:
         in-processing
     OrderSummary:
