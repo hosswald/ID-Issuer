@@ -1524,7 +1524,7 @@ components:
             properties:
               position:
                 $ref: '#/components/schemas/OrderPosition'
-              mId:
+              mid: # Not "mId". The answer I got looked like this: {"idList":[{"position":1,"mid":"000>[actual number removed]"}]}
                 $ref: '#/components/schemas/Mid'
             required:
               - position
