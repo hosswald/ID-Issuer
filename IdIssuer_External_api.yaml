@@ -1338,7 +1338,6 @@ components:
         - fExciseNumber1
         - otherFidR
         - reg3rd
-        - fExciseNumber2 # got error: {"code":400,"message":"ConstraintViolationException in /v1/facility, see details for details","details":[{"fieldName":"de.bdr.core.model.external.facility.FacilityOrderDetails@74d0af54","message":"seedNumber must be provided!!!"}]}
       example:
         eoId: "QCBDR+1!000000000025"
         eoCode: "dZU51X"
