@@ -1577,6 +1577,7 @@ components:
           $ref: '#/components/schemas/Gtin'
       required:
         - fid
+        - mid # error if missing: {"code":400,"message":"IllegalArgumentException in /v1/upui, cause: Invalid request due to:  Please provide machineId, "}
         - pType
         - pBrand
         - pWeight
