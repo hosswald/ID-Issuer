@@ -944,9 +944,9 @@ components:
       maxLength: 50
     EoId:
       type: string
-      example: 'QCBDR+1DE020054'
-      minLength: 15
-      maxLength: 15
+      example: '000+1!234567890123' #Server complains: EOID must be 18 alphanumeric chars long, with zeros at first three positions and + at position 4, excluding characters i,o,I,O, and including character ! after position 4"}]
+      minLength: 18
+      maxLength: 18
     Fid:
       type: string
       minLength: 21
