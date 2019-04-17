@@ -470,6 +470,7 @@ paths:
                 items:
                   oneOf:
                     - $ref: '#/components/schemas/EoId'
+                    - $ref: '#/components/schemas/Fid'
                     - $ref: '#/components/schemas/Mid'
         400:
           description: Bad request, e.g. parameter error
