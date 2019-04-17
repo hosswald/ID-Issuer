@@ -470,7 +470,6 @@ paths:
                 items:
                   oneOf:
                     - $ref: '#/components/schemas/EoId'
-                    - $ref: '#/components/schemas/Fid'
                     - $ref: '#/components/schemas/Mid'
         400:
           description: Bad request, e.g. parameter error
@@ -949,13 +948,13 @@ components:
       maxLength: 18
     Fid:
       type: string
-      minLength: 21
-      maxLength: 21
+      minLength: 24
+      maxLength: 31
       example: '000<1a2B3c4D5e6F7g8H9j0!' #Server complains: FID must be 24 or 31 alphanumeric chars long, with zeros at three first positions, < at position 4, excluding characters i,o,I,O, and including character ! after position 4
     Mid:
       type: string
-      minLength: 21
-      maxLength: 21
+      minLength: 24
+      maxLength: 24
       example: '000>1a2B3c4D5e6F7g8H9j0!' #Server complains: MID must be 24 alphanumeric chars long, excluding characters i,o,I,O, with > at position 4 and optionally character ! after position 4
     ConfirmationCode:
       description: Confirmation code acc. to TPD - Annex II
